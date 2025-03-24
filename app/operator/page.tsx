@@ -1,11 +1,13 @@
 "use client";
-import { Space } from "antd";
+import { Space, Divider } from "antd";
 import React, { useState } from "react";
 import { OperatorInput, Puppeteer, LLMCheck, Steps } from "./components";
 import { ISteps } from "./components/Steps";
 
 export const Operator = () => {
-  const [userInput, setUserInput] = useState<string>("");
+  const [userInput, setUserInput] = useState<string>(
+    "Find the Birthday of Cristiano Ronaldo"
+  );
   const [steps, setSteps] = useState<ISteps[]>([]);
 
   return (
@@ -21,8 +23,7 @@ export const Operator = () => {
       <Space align="center" direction="vertical">
         <h2>Easy Operator</h2>
         <h3>Just Tell Me What Do You Want To Do</h3>
-        <LLMCheck />
-        <OperatorInput onComplete={(input) => setUserInput(input)} />
+        <Divider />
         <Puppeteer
           userInput={userInput}
           onAddSteps={(e: ISteps[]) =>
@@ -31,7 +32,12 @@ export const Operator = () => {
             })
           }
         />
+        <OperatorInput
+          val={userInput}
+          onComplete={(input) => setUserInput(input)}
+        />
         <Steps steps={steps} />
+        <LLMCheck />
       </Space>
     </div>
   );
