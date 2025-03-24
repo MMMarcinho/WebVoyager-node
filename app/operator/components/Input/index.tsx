@@ -1,13 +1,19 @@
 import { Button, Input } from "antd";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 const { TextArea } = Input;
 
 export const OperatorInput = ({
+  val,
   onComplete,
 }: {
+  val?: string;
   onComplete: (input: string) => void;
 }) => {
   const [value, setValue] = useState("");
+
+  useEffect(() => {
+    setValue(val || "");
+  }, [val]);
 
   return (
     <div
@@ -29,6 +35,7 @@ export const OperatorInput = ({
           fontSize: "18px",
           resize: "none",
         }}
+        value={value}
         rows={3}
         onChange={(e) => setValue(e.target.value)}
       />

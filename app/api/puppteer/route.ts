@@ -3,8 +3,8 @@ import puppeteer, { Browser, Page } from "puppeteer";
 import { markPageElements, ElementMarker } from "./mark";
 
 // 全局变量：共享的浏览器和页面实例
-let browserInstance: Browser;
-let pageInstance: Page;
+let browserInstance: Browser | null;
+let pageInstance: Page | null;
 // 全局变量：页面中的标记
 let markers: ElementMarker[] = [];
 let screenshot: string;
@@ -22,8 +22,21 @@ export async function POST(request: Request) {
       reset?: boolean;
     };
 
+    if (reset) {
+      browserInstance = null;
+      pageInstance = null;
+      markers = [];
+      screenshot = "";
+
+      return {
+        status: 200,
+        body: "reset",
+      };
+    }
+
     // 初始化浏览器实例，并支持重启
-    if (reset || !browserInstance || !pageInstance) {
+    if (!browserInstance || !pageInstance) {
+
       // 当前存在浏览器实例，等待关闭
       if (browserInstance) {
         await browserInstance.close();
@@ -64,24 +77,12 @@ export async function POST(request: Request) {
       }
       // 模拟点击行为
       else if (action?.startsWith("Click")) {
-        console.log("click ==========", action);
         const target = findIndex(action.split(" ")?.[1] || "[0]");
-        console.log(
-          "click2 ==========",
-          action.split(" "),
-          action.split(" ")?.[1],
-          target
-        );
         // 找到指定操作元素
         const elementMarker = markers[target];
-        // const responsePromise = pageInstance.waitForResponse(
-        //   (response) =>
-        //     response.url().startsWith("https://") && response.status() === 200
-        // );
+       
         // 进行对象元素的点击操作
         await pageInstance.click(elementMarker.selector);
-        // 等待响应完成
-        // await responsePromise;
       }
       // 模拟打字行为
       else if (action?.startsWith("Type")) {

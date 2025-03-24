@@ -46,9 +46,7 @@ export const Puppeteer = ({
   // 展示内容类型
   const [pageSwitch, setPageSwitch] = useState<PageType>(PageType.SCREENSHOT);
   // 用户需求
-  const [input, setInput] = useState<string>(
-    "Find the Birthday of Cristiano Ronaldo"
-  );
+  const [input, setInput] = useState<string>("");
   // 操作队列
   const [actions, setActions] = useState<string[]>([]);
   const [currentUrl, setCurrentUrl] = useState<string>(
@@ -59,29 +57,8 @@ export const Puppeteer = ({
     OpenAI.Chat.ChatCompletionMessageParam[]
   >([]);
 
-  const handlePerformActions = async (reset: boolean = false) => {
-    const response = await fetch("/api/puppeteer", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: currentUrl, actions, reset }),
-    });
-    const data: ApiResponse = await response.json();
-
-    if (data.html) {
-      setPageContent(data.html); // 更新页面内容
-      setPageScreenshot(`data:image/png;base64,${data.screenshot}`); // 更新页面截图
-      setCurrentUrl(data.currentUrl); // 更新当前 URL
-    }
-  };
-
-  const handleReset = () => {
-    setActions([]); // 清空操作队列
-    handlePerformActions(true); // 触发重置
-  };
-
   useEffect(() => {
     if (userInput) {
-      console.log("update user input", userInput);
       setInput(userInput);
     }
   }, [userInput]);
@@ -96,6 +73,7 @@ export const Puppeteer = ({
       body: JSON.stringify(params),
     });
     const data: ApiResponse = await response.json();
+
     // 更新页面 html 内容
     setPageContent(data.html);
     // 更新页面 base64 截图
@@ -106,6 +84,16 @@ export const Puppeteer = ({
     return data;
   };
 
+  const resetPage = async () => {
+    // 清空操作队列
+    setActions([]);
+    await fetch("/api/puppeteer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reset: true }),
+    });
+    return;
+  };
   // 进行任务的初始化
   const initTask = async () => {
     const pageData = await operatePage();
@@ -136,7 +124,6 @@ export const Puppeteer = ({
         ],
       },
     ];
-    console.log("pageData ======", pageData, "\n", pageTypeStr);
     setMessages(msg);
     const res = await callLLM(msg);
     // const res = `Thought: The task is to find the birthday of Cristiano Ronaldo. I need to use the search bar to input the query. Action: Type [4]; Cristiano Ronaldo birthday`;
@@ -177,7 +164,7 @@ export const Puppeteer = ({
       },
     ];
     const res = await callLLM(msg);
-    // const res = `Thought: The search query has been entered, now I need to click the search button to get the results. Action: Click [8] `
+    // const res = `Thought: The search query has been entered, now I need to click the search button to get the results. Action: Click [8] `;
     handleTaskResult([
       ...msg,
       {
@@ -194,7 +181,6 @@ export const Puppeteer = ({
     // Thought: The task is to interact with the Google search page, which typically involves using the search box to input a query. The search box is labeled with [4].\nAction: Click [4]
     const data = msg.findLast((it) => it.role === "assistant")?.content || "";
     setMessages(msg);
-    console.log("handleTaskResult=======", data, msg);
     if (typeof data === "string") {
       const action = data.split("Action:")?.[1]?.trim();
       const thought = data.split("Action:")?.[0]?.replace("Thought: ", "");
@@ -204,20 +190,34 @@ export const Puppeteer = ({
       }
     }
   };
-
   return (
     <div
       style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
     >
-      {!!actions.length && (
-        <Space direction="horizontal">
-          <>Next Action:</>
-          <Input
-            value={actions[actions.length - 1]}
-            onChange={(e) => setActions([e.target.value])}
-          />
+      {
+        <Space direction="vertical">
+          <span>
+            1. Input Your Input And Click <b>GO</b>
+          </span>
+          <span>
+            2. Click <b>Init Page</b>
+          </span>
+          <span>3. Check the Action From LLM (Change It If You Need)</span>
+          <span>
+            4. Click <b>Operator Page</b>
+          </span>
+          {!!actions.length && (
+            <Space direction="horizontal">
+              <>Next Action:</>
+              <Input
+                style={{ width: "400px" }}
+                value={actions[actions.length - 1]}
+                onChange={(e) => setActions([e.target.value])}
+              />
+            </Space>
+          )}
         </Space>
-      )}
+      }
       {/* 页面展示区域 */}
       {pageSwitch === PageType.SCREENSHOT && pageScreenshot && (
         <Image
@@ -249,22 +249,6 @@ export const Puppeteer = ({
       <Space style={{ marginTop: "16px" }}>
         <button
           style={{ width: "100px", height: "30px" }}
-          onClick={() =>
-            setPageSwitch(
-              pageSwitch === PageType.HTML ? PageType.SCREENSHOT : PageType.HTML
-            )
-          }
-        >
-          Change View
-        </button>
-        <button
-          style={{ width: "100px", height: "30px" }}
-          onClick={async () => await handlePerformActions()}
-        >
-          Perform Actions
-        </button>
-        <button
-          style={{ width: "100px", height: "30px" }}
           onClick={() => initTask()}
         >
           Init Page
@@ -275,42 +259,27 @@ export const Puppeteer = ({
         >
           Operate Page
         </button>
-        <button
-          style={{ width: "100px", height: "30px" }}
-          onClick={async () => {
-            const res = await callLLM([
-              {
-                role: "system",
-                content:
-                  'You are a primary school student. All your answers should be in a primary school tone and start with "Okay."',
-              },
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: "what is in the picture",
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: "https://mdn.alipayobjects.com/huamei_i51ojb/afts/img/A*MymQT6e4MiwAAAAAAAAAAAAADmF6AQ/original",
-                    },
-                  },
-                ],
-              },
-            ]);
-            console.log("res =======", res);
-          }}
-        >
-          Test LLM
-        </button>
-        <button
-          style={{ width: "100px", height: "30px" }}
-          onClick={handleReset}
-        >
+        <button style={{ width: "100px", height: "30px" }} onClick={resetPage}>
           Reset Page
         </button>
+        <button
+          style={{ width: "100px", height: "30px" }}
+          onClick={() => {
+            window.alert("html is not recommend now");
+            setPageSwitch(PageType.SCREENSHOT);
+            // pageSwitch === PageType.HTML ?  : PageType.HTML
+          }}
+        >
+          Change View
+        </button>
+      </Space>
+      <Space direction="horizontal" style={{ marginTop: "16px" }}>
+        <>Current Url:</>
+        <Input
+          style={{ width: "400px" }}
+          value={currentUrl}
+          onChange={(e) => setCurrentUrl(e.target.value)}
+        />
       </Space>
     </div>
   );
