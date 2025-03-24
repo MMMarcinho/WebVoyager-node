@@ -2,6 +2,7 @@ import React from "react";
 import { Alert, Flex, Tag, Collapse } from "antd";
 
 export const LLMCheck = () => {
+  const isAvaliable = process.env.NEXT_PUBLIC_LLM_API_KEY && process.env.NEXT_PUBLIC_LLM_API_URL && process.env.NEXT_PUBLIC_LLM_MODEL;
   const items = [
     {
       key: "1",
@@ -17,7 +18,7 @@ export const LLMCheck = () => {
               <span>3. Model: {process.env.NEXT_PUBLIC_LLM_MODEL}</span>
               <Flex gap={8}>
                 <>Static Config Availability: </>
-                <Tag color="success">pass</Tag>
+                {isAvaliable ? <Tag color="success">pass</Tag> : <Tag color="error">fail</Tag>}
               </Flex>
             </Flex>
           }
